@@ -26,6 +26,8 @@ struct Entry {
     token: Token,
 }
 
+const EXPIRY_FUDGE_SECS: u64 = 60;
+
 /// Both the [`ServiceAccountProvider`] and [`MetadataServerProvider`] get back
 /// JSON responses with this schema from their endpoints.
 #[derive(serde::Deserialize, Debug)]
@@ -227,7 +229,7 @@ impl From<TokenResponse> for Token {
             refresh_token: String::new(),
             expires_in: Some(tr.expires_in),
             expires_in_timestamp: std::time::SystemTime::now()
-                .checked_add(std::time::Duration::from_secs(tr.expires_in as u64)),
+                .checked_add(std::time::Duration::from_secs((tr.expires_in as u64).saturating_sub(EXPIRY_FUDGE_SECS))),
         }
     }
 }

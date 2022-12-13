@@ -4,6 +4,7 @@ use super::{Entry, TokenOrRequest, TokenProvider};
 use crate::{error, token::RequestReason, Error, Token};
 
 const IAM_CREDENTIALS_ENDPOINT: &'static str = "https://iamcredentials.googleapis.com";
+const EXPIRY_FUDGE_SECS: u64 = 60;
 
 // The impersonation response is in a different format from the other GCP responses. Why, Google, why?
 #[derive(serde::Deserialize, Debug)]
@@ -23,9 +24,9 @@ impl From<TokenResponse> for Token {
             &response.expires_time,
             &time::format_description::well_known::Rfc3339,
         )
-        .unwrap();
-        // FIXME: what's a sane policy for refreshing the token?
-        let expires_in = (expires - time::OffsetDateTime::now_utc()).whole_seconds() - 10;
+        .unwrap()
+            - std::time::Duration::from_secs(EXPIRY_FUDGE_SECS);
+        let expires_in = (expires - time::OffsetDateTime::now_utc()).whole_seconds();
         Token {
             access_token: response.access_token,
             refresh_token: String::new(),
